@@ -143,7 +143,7 @@ void cancelReservation(int id)
     exit(1);
   }
   int lineNum = idcheck(id);
-  while (lineNum == -1)
+  while (lineNum == -1 || id < 999 || id > 999999)
   { // Loops Until a valid ID room is entered
     printf("Please enter a valid reservation id or room number: ");
     scanf("%d", &id);
