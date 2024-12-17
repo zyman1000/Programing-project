@@ -1,3 +1,5 @@
+//Modified by Khammeeeessss!!
+
 int idcheck(int id)
 {
   char buffer[256]; //takes room id every iteration
