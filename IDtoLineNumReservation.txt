@@ -1,52 +1,29 @@
-//This function takes *Reservation_ID* or *Room number*, search Reservation.txt and return the room line number
-//Function handling should be done seperatly in the function you'll be using this function in!!!
-
-
 int idcheck(int id)
 {
-  char buffer[256] /*takes room id every iteration*/;
-  char *tok;
+  char buffer[256]; //takes room id every iteration
   int lineNum = 1;
+  char strInputID[7];
+  char strRoomNum[7];
+  char strID[7];
   FILE *reservation;
+
   reservation = fopen("Reservation.txt", "r"); // Reads reservation file
   if (reservation == NULL)
   {
     printf("Error reading reservation file");
     exit(1);
   }
-  if (id < 10000)
-  {
-    char strID[5];
-    sprintf(strID, "%d", id); // convert id from int to str
-    while (fgets(buffer, sizeof(buffer), reservation) /*Copy lines one by one*/)
-    {
-      tok = strtok(buffer, ","); // initialize the pointer
-      tok = strtok(NULL, ",");   // skips the reservaion id
-      if (tok != NULL && strncmp(tok, strID, strlen(strID)) == 0)
-      { /*see if the id matched*/
+    sprintf(strInputID, "%d", id); // convert id from int to str
+ while (fgets(buffer, sizeof(buffer), reservation)) {
+    sscanf(buffer, "%[^,],%[^,]", strID, strRoomNum);
+    if (strcmp(strInputID, strID) == 0 || strcmp(strInputID, strRoomNum) == 0) {
         fclose(reservation);
-        return lineNum;
-      }
-      lineNum++;
-    } // it didn't find the id
-    fclose(reservation);
-    return -1;
-  }
-  else
-  {
-    char strID[7];
-    sprintf(strID, "%d", id); // convert id from int to str
-    while (fgets(buffer, sizeof(buffer), reservation) /*Copy lines one by one*/)
-    {
-      tok = strtok(buffer, ","); // from the start to the end of reservation id
-      if (tok != NULL && strncmp(tok, strID, strlen(strID)) == 0)
-      { /*see if the id matched*/
-        fclose(reservation);
-        return lineNum;
-      }
-      lineNum++;
-    } // it didn't find the id
-    fclose(reservation);
-    return -1;
-  }
+        return lineNum; // lineNum is returned here
+    }
+    lineNum++; // lineNum is incremented before checking the match
 }
+
+
+    fclose(reservation);
+    return -1;
+  }
