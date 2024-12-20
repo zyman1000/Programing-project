@@ -273,6 +273,5 @@ int main()
   scanf("%d", &id);
   getchar(); // get rid of the enter you just entered after the id
   checkIn(id);
-  // roomUpdate(id);
   return 0;
 }
