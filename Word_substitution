@@ -1,0 +1,16 @@
+////Created by Tahhann/////
+//substituting a sub string with another in a line
+
+void replaceSubstr(char *Str, char *oldSubstrP, char *newSubstr, char *delim)
+{
+    char *newStr = calloc((strlen(Str) + strlen(newSubstr)), sizeof(char));
+    strncpy(newStr, Str, oldSubstrP - Str);
+    strcat(newStr, newSubstr);
+    char oldSubstrTok[200]="\0";
+    strcpy(oldSubstrTok, oldSubstrP);
+    strtok(oldSubstrTok, delim);
+    char *nextP = oldSubstrP + strlen(oldSubstrTok);
+    strcat(newStr, nextP);
+    strcpy(Str, newStr);
+    free(newStr);
+}
