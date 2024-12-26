@@ -1,6 +1,63 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+typedef struct
+{
+  char day[4]; // day number consisting of 2 character + null + extra byte
+  char month[4];
+  char year[6]; // 4 digits + null + 1 extra
+} date;
+typedef struct
+{ // structure to make everything easier
+  int reservation_ID;
+  int room_num;
+  char status[12];
+  char name[50];
+  char ID[16]; // number of ID digits is 14 + 1 null terminator + 1 extra byte useful for verification process
+  int nights_num;
+  date check_in;
+  char email[102];    // standrard length for the maximum email length
+  char phone_num[16]; //+201124848945 14 characters + null + extra byte
+  char cat[11];       // category
+  int price;
+  int size;
+} Reservation;
+void lineNumReservation(char *idStr, int *lineNum, Reservation *Rooms)
+{
+  printf("Please enter a reservation id or room number to check in\n");
+  fgets(idStr, 7, stdin);
+  if (strlen(idStr) >= 7)
+    while (getchar() != '\n')
+    {
+    }
+  int id = atoi(idStr);
+  for (int i = 0; i < Rooms[0].size; i++) /// checks where is the line to cancel
+  {
+    if (Rooms[i].reservation_ID == id || Rooms[i].room_num == id)
+    {
+      *lineNum = i;
+      break;
+    }
+  }
+  while (*lineNum == -1) // id validation stuff
+  {
+    printf("Please enter a valid reservation ID or room number: ");
+    fgets(idStr, 7, stdin);
+    if (strlen(idStr) >= 7)
+      while (getchar() != '\n')
+      {
+      }
+    id = atoi(idStr);
+    for (int i = 0; i < Rooms[0].size; i++)
+    {
+      if (Rooms[i].reservation_ID == id || Rooms[i].room_num == id)
+      {
+        *lineNum = i;
+        break;
+      }
+    }
+  }
+}
 void fieldLabel(int n)
 {
   switch (n)
@@ -12,266 +69,197 @@ void fieldLabel(int n)
     printf("Enter your national ID: ");
     break;
   case 3:
-    printf("Enter your number of nights: ");
-    break;
-  case 4:
-    printf("Enter the Check-in Date(dd-mm-yyyy) ");
-    break;
-  case 5:
     printf("Enter your email: ");
     break;
-  case 6:
+  case 4:
     printf("Enter your mobile number: ");
     break;
   default:;
   }
 }
 
-int idRoomcheck(int id)
+void checkIn(Reservation *Rooms)
 {
-  char buffer[256] /*takes room id every iteration*/, strID[5];
-  char *tok;
-  int lineNum = 1;
-  FILE *room;
-  room = fopen("Room.txt", "r"); // Reads reservation file
-  if (room == NULL)
-  {
-    printf("Error reading room file");
-    exit(1);
-  }
-  sprintf(strID, "%d", id); // convert id from int to str
-  while (fgets(buffer, sizeof(buffer), room) /*Copy lines one by one*/)
-  {
-    tok = strtok(buffer, " "); // initalize the pointer
-    if (tok != NULL /*successful tokonization*/ && strncmp(tok, strID, strlen(strID)) == 0)
-    { /*see if the id matched*/
-      fclose(room);
-      return lineNum;
-    }
-    lineNum++;
-  } // it didn't find the id
-  fclose(room);
-  return -1;
-}
-int idcheck(int id)
-{
-  char buffer[256]; // takes room id every iteration
-  int lineNum = 1;
-  char strInputID[7];
-  char strRoomNum[7];
-  char strID[7];
-  FILE *reservation;
-
-  reservation = fopen("Reservation.txt", "r"); // Reads reservation file
-  if (reservation == NULL)
-  {
-    printf("Error reading reservation file");
-    exit(1);
-  }
-  sprintf(strInputID, "%d", id); // convert id from int to str
-  while (fgets(buffer, sizeof(buffer), reservation))
-  {
-    sscanf(buffer, "%[^,],%[^,]", strID, strRoomNum);
-    if (strcmp(strInputID, strID) == 0 || strcmp(strInputID, strRoomNum) == 0)
-    {
-      fclose(reservation);
-      return lineNum; // lineNum is returned here
-    }
-    lineNum++; // lineNum is incremented before checking the match
-  }
-
-  fclose(reservation);
-  return -1;
-}
-
-void roomUpdate(int id)
-{
-  char buffer[256]; // takes each line one by one
-  char *tok;
-  FILE *Temp, *room;
-  room = fopen("Room.txt", "r"); // Reads room file
-  if (room == NULL)
-  {
-    printf("Error reading room file");
-    exit(1);
-  }
-  Temp = fopen("TempRoom.txt", "w"); // create a temporary file
+  int lineNum = -1, flag = 0;
+  char buffer[256], id[7];
+  lineNumReservation(id, &lineNum, Rooms); // Validate the ID and get the reservation lineNum
+  FILE *Temp = fopen("Temp.txt", "w");
   if (Temp == NULL)
   {
-    printf("Error creating the temporary room file");
+    printf("Error creating the temporary reservation file\n");
     exit(1);
   }
-  int lineNum = idRoomcheck(id);
-  for (int i = 1; fgets(buffer, sizeof(buffer), room); i++)
-  {
 
-    if (i != lineNum)
-    {
-      fputs(buffer, Temp);
-    }
-    else
-    {
-      tok = strtok(buffer, " ");
-      fprintf(Temp, "%s ", tok);  // ID is now ready
-      fprintf(Temp, "Reserved "); // ignored the reserved word and instead printed reserved
-      tok = strtok(NULL, " ");    // skipped by one token
-      tok = strtok(NULL, " ");    // now moved to category
-      fprintf(Temp, "%s", tok);   // printed category
-      tok = strtok(NULL, " ");    // now moved to price
-      fprintf(Temp, " %s", tok);  // printed price
-    }
-  }
-  fclose(Temp);
-  fclose(room);
-  ////////Replacing TempRoom.txt with Room.txt////////
-
-  if (remove("Room.txt") != 0)
-    perror("Can't remove old Room!\n");
-  if (rename("TempRoom.txt", "Room.txt") == 0)
-    ;
-  else
-    perror("failed to change the name for tempRoom\n");
-}
-void reservationUpdate(int id)
-{
-  char tempBuffer[256];
-  char buffer[256]; // takes each line one by one
-  char *tok;        // Your friendly neighborhood tokenizer
-  FILE *Temp, *reservation;
-  reservation = fopen("Reservation.txt", "r"); // Reads reservation file
-  if (reservation == NULL)
+  FILE *roomFile = fopen("room.txt", "r");
+  FILE *roomTemp = fopen("TempRoom.txt", "w");
+  if (roomFile == NULL || roomTemp == NULL)
   {
-    printf("Error reading reservation file");
+    printf("Error accessing room files\n");
     exit(1);
   }
-  Temp = fopen("Temp.txt", "w"); // create a temporary file
-  if (Temp == NULL)
-  {
-    printf("Error creating the temporary reservation file");
-    exit(1);
-  }
-  int lineNum = idcheck(id);
-  while (lineNum == -1 || id < 999 || id > 999999)
-  { // Loops Until a valid ID room is entered
-    printf("Please enter a valid reservation id or room number: ");
-    scanf("%d", &id);
-    lineNum = idcheck(id);
-  }
 
-  for (int i = 1; fgets(buffer, sizeof(buffer), reservation); i++)
+  // Process Reservations
+  for (int i = 0; i <= Rooms[0].size - 1; i++)
   {
     if (i != lineNum)
     {
-      fputs(buffer, Temp);
+      fprintf(Temp, "%d,%d,%s,%s,%s,%d,%s-%s-%s,%s,%s\n",
+              Rooms[i].reservation_ID, Rooms[i].room_num, Rooms[i].status,
+              Rooms[i].name, Rooms[i].ID, Rooms[i].nights_num,
+              Rooms[i].check_in.day, Rooms[i].check_in.month, Rooms[i].check_in.year,
+              Rooms[i].email, Rooms[i].phone_num);
+      continue;
     }
     else
     {
-      strcpy(tempBuffer, buffer);
-      tok = strtok(tempBuffer, ","); // initialization
-      fputs(tok, Temp);              // prints Res ID
-      tok = strtok(NULL, ",");       // skips to ROOM NUM
-      fputs(",", Temp);              //****** ","
-      fputs(tok, Temp);              // prints ID
-      fputs(",", Temp);              //****** , room id ','
-      // tok now holding the status
-      fputs("confirmed", Temp);
-      fputs(",", Temp);
-      for (int i = 0; i < 2; i++)
+      if (strcmp(Rooms[lineNum].status, "confirmed") == 0)
       {
-        tok = strtok(NULL, ",");
+        printf("The room is already confirmed!");
+        flag++;
+        break;
       }
-      for (int i = 0; i < 6; i++)
+      // Request customer data for verification
+      fieldLabel(1);
+      fgets(buffer, sizeof(buffer), stdin);
+      buffer[strlen(buffer) - 1] = 0; // Remove newline character
+      if (strcmp(buffer, Rooms[i].name) != 0)
       {
-        fputs(tok, Temp);
-        if (i < 5)
-          fputs(",", Temp);
-        tok = strtok(NULL, ",");
+        printf("You have entered wrong data!\n");
+        flag++;
+        break;
+      }
+      fieldLabel(2);
+      fgets(buffer, sizeof(buffer), stdin);
+      buffer[strlen(buffer) - 1] = 0;
+      if (strcmp(buffer, Rooms[i].ID) != 0)
+      {
+        printf("You have entered wrong data!\n");
+        flag++;
+        break;
+      }
+      fieldLabel(3);
+      fgets(buffer, sizeof(buffer), stdin);
+      buffer[strlen(buffer) - 1] = 0;
+      if (strcmp(buffer, Rooms[i].email) != 0)
+      {
+        printf("You have entered wrong data!\n");
+        flag++;
+        break;
+      }
+      fieldLabel(4);
+      fgets(buffer, sizeof(buffer), stdin);
+      buffer[strlen(buffer) - 1] = 0;
+      if (strcmp(buffer, Rooms[i].phone_num) != 0)
+      {
+        printf("You have entered wrong data!\n");
+        flag++;
+        break;
       }
     }
-  }
-  fclose(reservation);
-  fclose(Temp);
 
-  ////////Replacing Temp.txt with Reservation.txt////////
-
-  if (remove("Reservation.txt") != 0)
-    perror("Can't remove old reservation!\n");
-  if (rename("Temp.txt", "Reservation.txt") == 0)
-    ;
-  else
-    perror("failed to change the name for temp\n");
-
-  printf("Your reservation has been confirmed successfully!");
-}
-void checkIn(int id)
-{
-  int isInvalid = 0;
-  char *tok;
-  char buffer[256], input[256], tempBuffer[256];
-  FILE *reservation, *room;
-  reservation = fopen("Reservation.txt", "r"); // Reads reservation file
-  if (reservation == NULL)
-  {
-    printf("Error reading reservation file");
-    exit(1);
-  }
-  room = fopen("Room.txt", "r"); // Reads room file
-  if (room == NULL)
-  {
-    printf("Error reading room file");
-    exit(1);
-  }
-  int lineNum = idcheck(id);
-  while (lineNum == -1 || id < 999 || id > 999999)
-  { // Loops Until a valid ID room is entered
-    printf("Please enter a valid reservation id or room number: ");
-    scanf("%d", &id);
-    lineNum = idcheck(id);
-  }
-  for (int i = 1; fgets(buffer, sizeof(buffer), reservation); i++)
-  {
-    if (i != lineNum)
-      ;
-    else
+    if (!flag)
     {
-      strcpy(tempBuffer, buffer);    // tempBuffer holds the whole line
-      tok = strtok(tempBuffer, ","); // tok holds Res_ID
-      tok = strtok(NULL, ",");       // tok holds, room num
-      tok = strtok(NULL, ",");       // tok holds status
-      for (int i = 1; i < 7 && !isInvalid; i++)
+      // Update Reservation Status
+      char confirmed[10];
+      strcpy(confirmed, "confirmed");
+      fprintf(Temp, "%d,%d,%s,%s,%s,%d,%s-%s-%s,%s,%s\n",
+              Rooms[i].reservation_ID, Rooms[i].room_num, confirmed,
+              Rooms[i].name, Rooms[i].ID, Rooms[i].nights_num,
+              Rooms[i].check_in.day, Rooms[i].check_in.month, Rooms[i].check_in.year,
+              Rooms[i].email, Rooms[i].phone_num);
+
+      // Update Room Status in TempRoom.txt
+      int roomNum = Rooms[i].room_num;
+      char roomBuffer[256];
+      while (fgets(roomBuffer, sizeof(roomBuffer), roomFile))
       {
-        tok = strtok(NULL, ","); // holds name
-        fieldLabel(i);           // choose what to print
-        gets(input);             // takes the data
-        if (i == 6)
-          tok[strlen(tok) - 1] = '\0'; ////////verrrrrryyyy immmppppooorrrtttaaanntt!
-        if (strcmp(tok, input) == 0)
-          ; // compare it with original data
+        int currentRoomNum;
+        char status[10], view[20];
+        int price;
+        sscanf(roomBuffer, "%d %s %s %d", &currentRoomNum, status, view, &price);
+        if (currentRoomNum == roomNum)
+        {
+          fprintf(roomTemp, "%d Reserved %s %d\n", currentRoomNum, view, price);
+        }
         else
         {
-          isInvalid++;
+          fprintf(roomTemp, "%s", roomBuffer);
         }
       }
-      if (!isInvalid)
-      {
-
-        fclose(reservation);
-        fclose(room);
-        reservationUpdate(id);
-        roomUpdate(id);
-      }
-      else
-        printf("You have entered a wrong data, Try again!");
+      rewind(roomFile); // Reset the pointer to the beginning of the file
     }
   }
+
+  // Copy any remaining reservations if an error occurred
+  if (flag)
+  {
+    for (int i = lineNum; i <= Rooms[0].size - 1; i++)
+    {
+      fprintf(Temp, "%d,%d,%s,%s,%s,%d,%s-%s-%s,%s,%s\n",
+              Rooms[i].reservation_ID, Rooms[i].room_num, Rooms[i].status,
+              Rooms[i].name, Rooms[i].ID, Rooms[i].nights_num,
+              Rooms[i].check_in.day, Rooms[i].check_in.month, Rooms[i].check_in.year,
+              Rooms[i].email, Rooms[i].phone_num);
+    }
+  }
+  fclose(Temp);
+  fclose(roomFile);
+  fclose(roomTemp);
+  if (flag)
+    remove("TempRoom.txt");
+}
+
+Reservation *Load()
+{
+  char buffer[256];
+  Reservation *Rooms = malloc(0);
+  int j = 0, i = 1;
+  FILE *reservation = fopen("Reservation.txt", "r");
+  FILE *rooms = fopen("Room.txt", "r");
+  if (reservation == NULL || rooms == NULL)
+  {
+    printf("Error reading reservation file");
+    exit(1);
+  }
+  while (fgets(buffer, 256, reservation))
+  {
+    Rooms = realloc(Rooms, sizeof(Reservation) * i);
+    Rooms[j].reservation_ID = atoi(strtok(buffer, ","));
+    Rooms[j].room_num = atoi(strtok(NULL, ","));
+    strcpy(Rooms[j].status, strtok(NULL, ","));
+    strcpy(Rooms[j].name, strtok(NULL, ","));
+    strcpy(Rooms[j].ID, strtok(NULL, ","));
+    Rooms[j].nights_num = atoi(strtok(NULL, ","));
+    strcpy(Rooms[j].check_in.day, strtok(NULL, ",-"));
+    strcpy(Rooms[j].check_in.month, strtok(NULL, ",-"));
+    strcpy(Rooms[j].check_in.year, strtok(NULL, ",-"));
+    strcpy(Rooms[j].email, strtok(NULL, ","));
+    strcpy(Rooms[j].phone_num, strtok(NULL, ",\n"));
+    i++;
+    j++;
+  }
+  Rooms[0].size = i - 1;
+  j = 0;
+  while (fgets(buffer, 256, rooms))
+  {
+    if (atoi(strtok(buffer, " ")) == Rooms[j].room_num)
+    {
+      strtok(NULL, " ");
+      strcpy(Rooms[j].cat, strtok(NULL, " "));
+      Rooms[j].price = atoi(strtok(NULL, " "));
+      j++;
+    }
+  }
+
+  fclose(rooms);
+  fclose(reservation);
+  return Rooms;
 }
 
 int main()
 {
-  int id;
-  printf("Please enter a reservation id or room number to edit the reservation\n");
-  scanf("%d", &id);
-  getchar(); // get rid of the enter you just entered after the id
-  checkIn(id);
+  Reservation *Rooms = Load();
+  checkIn(Rooms);
+  free(Rooms);
   return 0;
 }
